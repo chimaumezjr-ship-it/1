@@ -1,0 +1,27 @@
+{
+  "name": "kpi-fitness-billing",
+  "version": "1.0.0",
+  "description": "KPI Fitness memberships (Stripe Billing) and invoicing (Stripe Invoicing)",
+  "scripts": {
+    "test": "node --test",
+    "start": "node --env-file-if-exists=.env src/server.js",
+    "seed": "node --env-file-if-exists=.env scripts/seed-catalog.js",
+    "prepare": "git config core.hooksPath .githooks || true"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chimaumezjr-ship-it/1.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/chimaumezjr-ship-it/1/issues"
+  },
+  "homepage": "https://github.com/chimaumezjr-ship-it/1#readme",
+  "dependencies": {
+    "express": "^5.2.1",
+    "stripe": "^22.6.2"
+  },
+  "type": "module"
+}
