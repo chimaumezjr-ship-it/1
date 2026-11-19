@@ -21,9 +21,27 @@ def _ydl(opts=None):
     return yt_dlp.YoutubeDL(base)
 
 
+BOT_HELP = """
+YouTube is asking this computer to "confirm you're not a bot" (common on cloud
+servers such as GitHub Actions). Give the clipper your YouTube cookies:
+  1. In a private/incognito window, sign in to YouTube (a spare account is fine).
+  2. Export cookies.txt for youtube.com with a cookies.txt browser extension,
+     then close that private window.
+  3. Run with --cookies cookies.txt, or on GitHub add the file's contents as a
+     repository secret named YT_COOKIES and re-run the workflow.
+"""
+
+
 def probe(url: str) -> dict:
-    with _ydl() as y:
-        info = y.extract_info(url, download=False)
+    import yt_dlp
+    try:
+        with _ydl() as y:
+            info = y.extract_info(url, download=False)
+    except yt_dlp.utils.DownloadError as e:
+        if "not a bot" in str(e) or "Sign in to confirm" in str(e):
+            raise SystemExit(BOT_HELP + ("\n(Cookies were given but YouTube rejected them; "
+                                         "export fresh ones.)" if COOKIES else ""))
+        raise SystemExit(f"Could not open that link: {e}")
     if info.get("_type") == "playlist":
         raise SystemExit("That link is a playlist/channel. Pass a single stream or video link.")
     if info.get("is_live") or info.get("live_status") == "is_live":
