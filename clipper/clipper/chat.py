@@ -107,7 +107,7 @@ def save_jsonl(messages: list[Message], path: str | Path):
                                 ensure_ascii=False) + "\n")
 
 
-def download_chat(url: str, log=print) -> list[Message]:
+def download_chat(url: str, log=print, cookies: str | None = None) -> list[Message]:
     """Download a stream's live-chat replay. Returns [] if it has none."""
     try:
         from chat_downloader import ChatDownloader
@@ -116,7 +116,7 @@ def download_chat(url: str, log=print) -> list[Message]:
         return []
     out = []
     try:
-        chat = ChatDownloader().get_chat(url, message_groups=["messages"])
+        chat = ChatDownloader(cookies=cookies).get_chat(url, message_groups=["messages"])
         for i, m in enumerate(chat):
             t = m.get("time_in_seconds")
             if t is None:

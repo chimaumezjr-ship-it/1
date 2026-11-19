@@ -5,12 +5,18 @@ frames for each clip are read straight from the stream at render time.
 """
 from __future__ import annotations
 
+import os
 from pathlib import Path
+
+# Optional Netscape cookies.txt (helps when YouTube asks to "confirm you're not a bot").
+COOKIES = os.environ.get("CLIPPER_COOKIES") or None
 
 
 def _ydl(opts=None):
     import yt_dlp
     base = {"quiet": True, "no_warnings": True, "noprogress": True}
+    if COOKIES:
+        base["cookiefile"] = COOKIES
     base.update(opts or {})
     return yt_dlp.YoutubeDL(base)
 

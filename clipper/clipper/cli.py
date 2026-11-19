@@ -65,6 +65,7 @@ def parse_args(argv=None):
     p.add_argument("--download-video", action="store_true",
                    help="download the full video instead of streaming each clip's frames")
     p.add_argument("--analyze-only", action="store_true", help="find moments, don't render")
+    p.add_argument("--cookies", help="cookies.txt for sites that need you signed in (or set CLIPPER_COOKIES)")
     p.add_argument("--cache", default=".clipper_cache", help="where downloads/analysis are cached")
     p.add_argument("--preset", default="veryfast", help="x264 preset (slower = smaller files)")
     return p.parse_args(argv)
@@ -77,6 +78,9 @@ def main(argv=None) -> int:
     is_local = local.exists()
 
     # ---------------------------------------------------------------- input
+    if args.cookies:
+        from . import fetch
+        fetch.COOKIES = args.cookies
     if is_local:
         info = {"id": hashlib.sha1(str(local.resolve()).encode()).hexdigest()[:12],
                 "title": local.stem, "duration": None, "extractor_key": "local"}
@@ -119,7 +123,7 @@ def main(argv=None) -> int:
                 messages = chat_mod.load_file(cache)
             else:
                 log("Downloading chat replay...")
-                messages = chat_mod.download_chat(args.source, log)
+                messages = chat_mod.download_chat(args.source, log, cookies=fetch.COOKIES)
                 if not messages and "youtube" in info.get("extractor_key", "").lower():
                     log("  No live chat; reading YouTube comments for timestamp mentions...")
                     messages = chat_mod.comment_timestamp_mentions(fetch.comments(args.source), duration)

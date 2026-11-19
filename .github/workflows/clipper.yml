@@ -1,0 +1,107 @@
+# Run the stream clipper on GitHub's servers — no install needed.
+#
+# From the browser: Actions tab -> "Make clips" -> Run workflow -> paste the link.
+# Or edit clipper/jobs/stream.txt (link on the first line) and commit it.
+# When the run finishes, download the "clips" artifact at the bottom of the run page.
+name: Make clips
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "Stream / VOD link"
+        required: true
+      clips:
+        description: "How many clips"
+        default: "5"
+      layout:
+        description: "blur, crop or split"
+        default: "blur"
+      extra:
+        description: "Extra options (e.g. --facecam 0.75,0,0.25,0.3 --language en)"
+        default: ""
+  push:
+    paths:
+      - "clipper/jobs/**"
+
+jobs:
+  clip:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: clipper/requirements.txt
+
+      # yt-dlp needs a JavaScript runtime for YouTube.
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Install ffmpeg and Python packages
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg fonts-dejavu-core
+          pip install -q -r clipper/requirements.txt
+
+      - name: Cache models
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/huggingface
+            ~/.cache/clipper
+          key: clipper-models-v1
+
+      - name: Work out what to clip
+        id: job
+        env:
+          IN_URL: ${{ github.event.inputs.url }}
+          IN_CLIPS: ${{ github.event.inputs.clips }}
+          IN_LAYOUT: ${{ github.event.inputs.layout }}
+          IN_EXTRA: ${{ github.event.inputs.extra }}
+        run: |
+          if [ -n "$IN_URL" ]; then
+            url="$IN_URL"; args="-n ${IN_CLIPS:-5} --layout ${IN_LAYOUT:-blur} $IN_EXTRA"
+          else
+            url="$(sed -n 1p clipper/jobs/stream.txt | tr -d '\r')"
+            args="$(sed -n 2p clipper/jobs/stream.txt | tr -d '\r')"
+          fi
+          [ -n "$url" ] || { echo "No link given"; exit 1; }
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "args=$args" >> "$GITHUB_OUTPUT"
+
+      # Optional: if YouTube says "confirm you're not a bot", add a repository
+      # secret named YT_COOKIES containing an exported cookies.txt.
+      - name: Cookies
+        env:
+          YT_COOKIES: ${{ secrets.YT_COOKIES }}
+        run: |
+          if [ -n "$YT_COOKIES" ]; then
+            printf '%s\n' "$YT_COOKIES" > "$RUNNER_TEMP/cookies.txt"
+            echo "CLIPPER_COOKIES=$RUNNER_TEMP/cookies.txt" >> "$GITHUB_ENV"
+          fi
+
+      - name: Find moments and render clips
+        working-directory: clipper
+        env:
+          URL: ${{ steps.job.outputs.url }}
+          ARGS: ${{ steps.job.outputs.args }}
+        run: |
+          # --download-video: GitHub's servers download fast, and this avoids
+          # stream links expiring during a long render.
+          python -m clipper "$URL" --download-video --font "DejaVu Sans" $ARGS
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: clips
+          path: |
+            clipper/clips/**/*.mp4
+            clipper/clips/**/*.srt
+            clipper/clips/**/moments.json
+            clipper/clips/**/timeline.csv
+          if-no-files-found: warn
+          retention-days: 14

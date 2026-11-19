@@ -31,6 +31,23 @@ Bold white text with a thick black outline, **two words at a time**, and the
 Speech is transcribed locally with faster-whisper. Each clip also gets an
 `.srt` file for platform uploads.
 
+## Run it from your browser (no install)
+
+GitHub's servers can run the clipper for you:
+
+1. Open the repository on GitHub, go to the **Actions** tab and choose **Make clips**.
+2. Click **Run workflow**, paste the stream link, and click **Run workflow** again.
+3. When the run turns green (usually 10–40 minutes, depending on the stream's
+   length), open it and download **clips** under *Artifacts*.
+
+You can also edit `clipper/jobs/stream.txt` on GitHub and commit it: the link
+goes on line 1 and any options on line 2. Committing starts a run.
+
+If the log says YouTube wants you to *confirm you're not a bot*, export your
+YouTube cookies as `cookies.txt` with a browser extension. Paste the file's
+contents into a repository secret named `YT_COOKIES`
+(Settings → Secrets and variables → Actions), then run the workflow again.
+
 ## Install
 
 You need Python 3.10+ and [ffmpeg](https://ffmpeg.org/download.html) on your PATH.
