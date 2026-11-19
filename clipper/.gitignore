@@ -1,0 +1,4 @@
+__pycache__/
+.clipper_cache/
+clips/
+tests/_out/
